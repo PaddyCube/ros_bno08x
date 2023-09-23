@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 # Driver: SPDX-FileCopyrightText: 2020 Bryan Siepert, written for Adafruit Industries
 
-import rospy
+import rclpy
+from rclpy.node import Node
 from sensor_msgs.msg import MagneticField,Imu
 from std_msgs.msg import Float64
 from diagnostic_msgs.msg import DiagnosticStatus
-import time
-import sys
 import board
 import busio
 import adafruit_bno08x
+import time
 from adafruit_bno08x import (
     BNO_REPORT_ACCELEROMETER,
     BNO_REPORT_GYROSCOPE,
@@ -20,7 +20,7 @@ from adafruit_bno08x import (
 )
 from adafruit_bno08x.i2c import BNO08X_I2C
 
-class bno08x:
+class bno08x(Node):
     
     def __init__(self):
         self.i2c = busio.I2C(board.SCL, board.SDA, frequency=800000)
@@ -29,31 +29,31 @@ class bno08x:
         self.bno08x_node()
 
     def bno08x_node_init(self):
-        # Initialize ROS node
-        rospy.init_node('bno08x')
+
+        super().__init__('bno08x')
         # load covariance from parameter
-        self.cov_linear = rospy.get_param('~cov_linear', -1)
-        self.cov_angular = rospy.get_param('~cov_angular', -1)
-        self.cov_orientation = rospy.get_param('~cov_orientation', -1)
-        self.cov_magnetic = rospy.get_param('~cov_magnetic', -1)
+        self.cov_linear = port = self.declare_parameter('~cov_linear', -1).value
+        self.cov_angular = self.declare_parameter('~cov_angular', -1).value
+        self.cov_orientation = self.declare_parameter('~cov_orientation', -1).value
+        self.cov_magnetic = self.declare_parameter('~cov_magnetic', -1).value
 
         # load additional parameter
-        self.frame_id = rospy.get_param('~frame_id', 'imu')
-        self.rotation_vector = rospy.get_param('~rotation_vector', True)
-        self.geomag_vector = rospy.get_param('~geomag_vector', True)
+        self.frame_id = self.declare_parameter('~frame_id', 'imu').value
+        self.rotation_vector = self.declare_parameter('~rotation_vector', True).value
+        self.geomag_vector = self.declare_parameter('~geomag_vector', True).value
         
         # define publisher
         if self.rotation_vector == True:
-            self.raw_pub = rospy.Publisher('bno08x/raw', Imu, queue_size=10)
+            self.raw_pub = self.create_publisher(Imu, 'raw',10)
         if self.geomag_vector == True:
-            self.geo_pub = rospy.Publisher('bno08x/geo_raw', Imu, queue_size=10)
+            self.geo_pub = self.create_publisher(Imu, 'geo_raw',10)
 
-        self.mag_pub = rospy.Publisher('bno08x/mag', MagneticField, queue_size=10)
-        self.status_pub = rospy.Publisher('bno08x/status', DiagnosticStatus, queue_size=10)
+        self.mag_pub = self.create_publisher(MagneticField, 'mag', 10)
+        self.status_pub = self.create_publisher(DiagnosticStatus ,'status', 10)
 
         
-        self.rate = rospy.Rate(20) # frequency in Hz
-        rospy.loginfo("bno08x node launched.")
+        self.rate = self.create_rate(20) # frequency in Hz
+        self.get_logger().info("bno08x node launched.")
         
         self.calib_status = 0
 
@@ -68,7 +68,7 @@ class bno08x:
         time.sleep(0.5) # ensure IMU is initialized
 
     def bno08x_node(self):
-        while not rospy.is_shutdown():
+        while rclpy.ok():
       
             if self.rotation_vector == True:
                 self.publishIMU(BNO_REPORT_ROTATION_VECTOR)
@@ -78,7 +78,7 @@ class bno08x:
 
             mag_msg = MagneticField()
             mag_x, mag_y, mag_z = self.bno.magnetic
-            mag_msg.header.stamp = rospy.Time.now()
+            mag_msg.header.stamp = self.get_clock().now().to_msg()
             mag_msg.magnetic_field.x = mag_x
             mag_msg.magnetic_field.y = mag_y
             mag_msg.magnetic_field.z = mag_z
@@ -97,19 +97,20 @@ class bno08x:
 
             status_msg.message ="Magnetometer Calibration quality:" + adafruit_bno08x.REPORT_ACCURACY_STATUS[self.calib_status]
             if self.calib_status == 0:
-                status_msg.level = 1
+                status_msg.level = DiagnosticStatus.WARN
             else:
-                status_msg.level = 0
+                status_msg.level = DiagnosticStatus.OK
 
             self.status_pub.publish(status_msg)
 
+            rclpy.spin_once(self)
             self.rate.sleep()   
     
-        rospy.loginfo(rospy.get_caller_id() + "  bno08x node finished")
+        self.get_logger().info("  bno08x node finished")
 
     def publishIMU(self, vector_type):
         raw_msg = Imu()
-        raw_msg.header.stamp = rospy.Time.now()
+        raw_msg.header.stamp = self.get_clock().now().to_msg()
         raw_msg.header.frame_id = self.frame_id
 
         accel_x, accel_y, accel_z = self.bno.acceleration
@@ -159,10 +160,15 @@ class bno08x:
         if vector_type == BNO_REPORT_GEOMAGNETIC_ROTATION_VECTOR:
             self.geo_pub.publish(raw_msg)
 
+def main(args=None):
+    # Initialize ROS node
+    rclpy.init(args=args)
+    bno08x_class = bno08x()
+
+    bno08x_class.destroy_node()
+    rclpy.shutdown()
+
 
 
 if __name__ == '__main__':
-    try:
-        bno08x()
-    except rospy.ROSInterruptException:
-        rospy.loginfo(rospy.get_caller_id() + "  bno08x node exited with exception.")
+    main()

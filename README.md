@@ -6,10 +6,10 @@ A ROS2 node for communicating with the [BNO080](https://www.sparkfun.com/product
 
 The node communicates with the BNO08x via i2c using Adafruit's Python library: https://github.com/adafruit/Adafruit_CircuitPython_BNO08x.  The i2c address is preset to `0x4b` for the BNO080.  This is configurable for the BNO085 on `0x4a`.  The data is stored in the following:
 
-* Accelerometer and Gyroscope (sensor_msgs/Imu): `bno08x/raw`
-* Magnometer (sensor_msgs/MagneticField): `bno08x/mag`
-* Temperature (sensor_msgs/Temperature): `bno08x/temp`
-* Diagnostics (diagnostic_msgs/DiagnosticStatus): `bno08x/status`
+* Accelerometer and Gyroscope (sensor_msgs/Imu): `ros_bno08x/raw`
+* Magnometer (sensor_msgs/MagneticField): `ros_bno08x/mag`
+* Temperature (sensor_msgs/Temperature): `ros_bno08x/temp`
+* Diagnostics (diagnostic_msgs/DiagnosticStatus): `ros_bno08x/status`
 
 ## Installation Instructions
 
@@ -25,8 +25,7 @@ The node communicates with the BNO08x via i2c using Adafruit's Python library: h
 
 ## Running the Node
 
-* Option 1: `rosrun ros_bno08x talker.py` 
-* Option 2: `roslaunch launches/bno08x.launch`
+`ros2 launch ros_bno08x bno08x.launch.xml`
   
 ## Tested Setup
 
@@ -34,7 +33,6 @@ It should work on other versions but Python 3 is a requirement.
 
 * Platform: Raspberry Pi 4
 * OS: Ubuntu Jammy 22.04
-* ROS: Humble
-* Python: 3.8.5
+* ROS2: Humble
+* Python: 3.10.12
 
-!!!! NOT READY NOW !!!
