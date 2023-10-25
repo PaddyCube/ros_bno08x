@@ -6,8 +6,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import MagneticField,Imu
 from std_msgs.msg import Float64
 from diagnostic_msgs.msg import DiagnosticStatus
-import board
-import busio
+from rcl_interfaces.msg import ParameterDescriptor
 import adafruit_bno08x
 import time
 from adafruit_bno08x import (
@@ -18,13 +17,12 @@ from adafruit_bno08x import (
     BNO_REPORT_GYRO_INTEGRATED_ROTATION_VECTOR,
     BNO_REPORT_GEOMAGNETIC_ROTATION_VECTOR
 )
-from adafruit_bno08x.i2c import BNO08X_I2C
+from adafruit_bno08x.uart import BNO08X_UART
+import serial
 
 class bno08x(Node):
     
     def __init__(self):
-        self.i2c = busio.I2C(board.SCL, board.SDA, frequency=800000)
-        self.bno = BNO08X_I2C(self.i2c,address=0x4a) # BNO080 (0x4b) BNO085 (0x4a)
         self.bno08x_node_init()
         self.bno08x_node()
 
@@ -32,16 +30,44 @@ class bno08x(Node):
 
         super().__init__('bno08x')
         # load covariance from parameter
-        self.cov_linear = port = self.declare_parameter('~cov_linear', -1).value
-        self.cov_angular = self.declare_parameter('~cov_angular', -1).value
-        self.cov_orientation = self.declare_parameter('~cov_orientation', -1).value
-        self.cov_magnetic = self.declare_parameter('~cov_magnetic', -1).value
+        param_cov_linear_descriptor = ParameterDescriptor(description='linear covariance matrix')
+        self.declare_parameter('cov_linear', -1, param_cov_linear_descriptor)
+        self.cov_linear = self.get_parameter('cov_linear').get_parameter_value().double_value
+
+        param_cov_angular_descriptor = ParameterDescriptor(description='angular covariance matrix')
+        self.declare_parameter('cov_angular', -1, param_cov_angular_descriptor)
+        self.cov_angular = self.get_parameter('cov_angular').get_parameter_value().double_value
+
+        param_cov_orientation_descriptor = ParameterDescriptor(description='orientation covariance matrix')
+        self.declare_parameter('cov_orientation', -1,param_cov_orientation_descriptor)
+        self.cov_orientation = self.get_parameter('cov_orientation').get_parameter_value().double_value
+
+        param_cov_mangetic_descriptor = ParameterDescriptor(description='magnetc covariance matrix')
+        self.declare_parameter('cov_magnetic', -1, param_cov_mangetic_descriptor)
+        self.cov_magnetic = self.get_parameter('cov_magnetic').get_parameter_value().double_value
 
         # load additional parameter
-        self.frame_id = self.declare_parameter('~frame_id', 'imu').value
-        self.rotation_vector = self.declare_parameter('~rotation_vector', True).value
-        self.geomag_vector = self.declare_parameter('~geomag_vector', True).value
-        
+        param_frame_descriptor = ParameterDescriptor(description='frame id')
+        self.declare_parameter('frame_id', 'imu', param_frame_descriptor)
+        self.frame_id = self.get_parameter('frame_id').get_parameter_value().string_value
+
+        param_rot_vect_descriptor = ParameterDescriptor(description='use rotation vector')
+        self.declare_parameter('rotation_vector', True, param_rot_vect_descriptor)
+        self.rotation_vector = self.get_parameter('rotation_vector').get_parameter_value().bool_value
+
+        param_geo_vect_descriptor = ParameterDescriptor(description='use geo magnetic vector')
+        self.declare_parameter('geomag_vector', True, param_geo_vect_descriptor)
+        self.geomag_vector = self.get_parameter('geomag_vector').get_parameter_value().bool_value
+
+        param_port_descriptor = ParameterDescriptor(description='hardware port of device (dev_ttyUSB0)')
+        self.declare_parameter('port', '/dev/ttyUSB0', param_port_descriptor)
+        self.port = self.get_parameter('port').get_parameter_value().string_value
+
+        # init bno
+        self.get_logger().info("init BNO085 module with port: %s" % (self.port) )
+        self.uart = uart = serial.Serial(self.port, 3000000)
+        self.bno = BNO08X_UART(self.uart) 
+
         # define publisher
         if self.rotation_vector == True:
             self.raw_pub = self.create_publisher(Imu, 'raw',10)
@@ -52,7 +78,7 @@ class bno08x(Node):
         self.status_pub = self.create_publisher(DiagnosticStatus ,'status', 10)
 
         
-        self.rate = self.create_rate(20) # frequency in Hz
+        self.rate = self.create_rate(10) # frequency in Hz
         self.get_logger().info("bno08x node launched.")
         
         self.calib_status = 0

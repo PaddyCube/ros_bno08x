@@ -3,5 +3,6 @@
       <param name="frame_id" value="imu_frame" />
       <param name="rotation_vector" value="True" />
       <param name="geomag_vector" value="True" />
+      <param name="port" value="/dev/ttyUSB0" />
     </node>
 </launch>

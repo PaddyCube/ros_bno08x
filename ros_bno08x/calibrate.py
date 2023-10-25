@@ -2,14 +2,13 @@
 #
 # SPDX-License-Identifier: Unlicense
 import time
-import board
-import busio
-from digitalio import DigitalInOut
-import adafruit_bno08x
-from adafruit_bno08x.i2c import BNO08X_I2C
 
-i2c = busio.I2C(board.SCL, board.SDA)
-bno = BNO08X_I2C(i2c,address=0x4a)
+import adafruit_bno08x
+from adafruit_bno08x.uart import BNO08X_UART
+import serial
+
+uart = uart = serial.Serial("/dev/ttyUSB0", 3000000)
+bno = BNO08X_UART(uart)
 
 bno.begin_calibration()
 # TODO: UPDATE UART/SPI

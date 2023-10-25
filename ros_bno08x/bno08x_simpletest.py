@@ -2,18 +2,18 @@
 #
 # SPDX-License-Identifier: Unlicense
 import time
-import board
-import busio
+import serial
 from adafruit_bno08x import (
     BNO_REPORT_ACCELEROMETER,
     BNO_REPORT_GYROSCOPE,
     BNO_REPORT_MAGNETOMETER,
     BNO_REPORT_ROTATION_VECTOR,
 )
-from adafruit_bno08x.i2c import BNO08X_I2C
+import adafruit_bno08x
+from adafruit_bno08x.uart import BNO08X_UART
 
-i2c = busio.I2C(board.SCL, board.SDA, frequency=800000)
-bno = BNO08X_I2C(i2c,address=0x4a) # BNO080 (0x4b) BNO085 (0x4a)
+uart = uart = serial.Serial("/dev/ttyUSB0", 3000000)
+bno = BNO08X_UART(uart) 
 
 bno.enable_feature(BNO_REPORT_ACCELEROMETER)
 bno.enable_feature(BNO_REPORT_GYROSCOPE)
@@ -43,4 +43,8 @@ while True:
     print(
         "I: %0.6f  J: %0.6f K: %0.6f  Real: %0.6f" % (quat_i, quat_j, quat_k, quat_real)
     )
-    print("")
+
+    #print("Status:")
+    #calib_status = bno.calibration_status
+    #print("Magnetometer Calibration quality:" + adafruit_bno08x.REPORT_ACCURACY_STATUS[calib_status])
+    #print("")
