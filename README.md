@@ -18,6 +18,8 @@ The node communicates with the BNO08x via UART (USB TTL converter) using Adafrui
 ## Running the Node
 
 `ros2 launch ros_bno08x bno08x.launch.xml`
+
+`ros2 launch ros_bno08x bno08x.launch.xml port:="/dev/ttyUSB1"`
   
 ## Tested Setup
 

@@ -117,7 +117,7 @@ class bno08x(Node):
 
             self.mag_pub.publish(mag_msg)
         
-            self.calib_status = self.bno.calibration_status
+            #self.calib_status = self.bno.calibration_status
             status_msg = DiagnosticStatus()
             status_msg.name = "bno08x IMU"
 

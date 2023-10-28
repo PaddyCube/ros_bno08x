@@ -1,8 +1,9 @@
 <launch>
+    <arg name="port" default="/dev/ttyUSB0" />
     <node name="ros_bno08x" pkg="ros_bno08x" exec="talker" namespace="ros_bno08x" respawn="true" respawn_delay="2" output="screen">
       <param name="frame_id" value="imu_frame" />
       <param name="rotation_vector" value="True" />
       <param name="geomag_vector" value="True" />
-      <param name="port" value="/dev/ttyUSB0" />
+      <param name="port" type="str" value="$(var port)"/>
     </node>
 </launch>
